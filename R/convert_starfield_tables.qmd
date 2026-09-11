@@ -1,0 +1,78 @@
+---
+title: "Convert Starfield Tables"
+author: '`r whoami::fullname()`'
+date: today
+format:
+  html:
+    lang: en
+    toc: true
+    toc-depth: 3
+    toc-location: left
+    toc-title: Contents
+    number-sections: true
+    self-contained: true
+    page-layout: article
+execute: 
+  echo: false
+  warning: false
+  message: false
+editor: source
+---
+
+```{r}
+#| label: setup
+
+library(tidyverse)
+library(janitor)
+library(arrow)
+library(here)
+
+fix_cols <- function(x) {
+  x |>
+    str_remove("\\%$") |>
+    as.numeric()
+}
+```
+
+```{r}
+#| label: fetch data
+#| include: false
+
+cols <- c("mag", "fire_rate", "range", "accuracy", "mass",
+          "mod_capacity", "value", "hull", "crew_stations")
+
+files <- list.files(here("data", "csv"),
+                    pattern = "csv$",
+                    full.names = TRUE,
+                    ignore.case = T)
+
+for (file in files) {
+  basename <- tolower(tools::file_path_sans_ext(basename(file)))
+  assign(basename,
+         read_csv(file) |>
+           collect() |>
+           clean_names() |>
+           mutate(across(where(is.character), str_squish),
+                  across(any_of(cols), fix_cols)))
+}
+```
+
+```{r}
+consumables |>
+  mutate(value_mass = value / mass) |>
+  arrange(-value_mass) |>
+  select(-description, -effect) |>
+  flextable::flextable() |>
+  flextable::colformat_double(digits = 1) |>
+  flextable::autofit()
+```
+
+
+```{r}
+
+weapons |>
+  mutate(accuracy = accuracy / 100)
+```
+
+
+
